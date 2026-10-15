@@ -43,8 +43,8 @@ def rotate_right(a):
     return b
 
 
-# пересчитывает высоту вершины и, если |bal| = 2, делает повороты
-# возвращает вершину, которая теперь стоит на месте v
+# пересчитываем высоту, если |bal| = 2 - делаем малое или большое вращение
+# возвращаем новый корень поддерева
 def fix_balance(v):
     update_height(v)
     b = get_balance(v)
@@ -59,13 +59,13 @@ def fix_balance(v):
     return v
 
 
-def insert(node, key):
+def add(node, x):
     if node is None:
-        return Node(key)
-    if key < node.key:
-        node.left = insert(node.left, key)
-    elif key > node.key:
-        node.right = insert(node.right, key)
+        return Node(x)
+    if x < node.key:
+        node.left = add(node.left, x)
+    elif x > node.key:
+        node.right = add(node.right, x)
     else:
         return node
     return fix_balance(node)
@@ -77,32 +77,32 @@ def find_min(node):
     return node
 
 
-def remove(node, key):
+def delete(node, x):
     if node is None:
         return None
-    if key < node.key:
-        node.left = remove(node.left, key)
-    elif key > node.key:
-        node.right = remove(node.right, key)
+    if x < node.key:
+        node.left = delete(node.left, x)
+    elif x > node.key:
+        node.right = delete(node.right, x)
     else:
+        # лист или один ребенок
         if node.left is None:
             return node.right
         if node.right is None:
             return node.left
-        # два ребенка: записываем в вершину минимум правого поддерева,
-        # а саму вершину с этим минимумом удаляем из правого поддерева
+        # два ребенка: берем минимум из правого поддерева
         m = find_min(node.right)
         node.key = m.key
-        node.right = remove(node.right, m.key)
+        node.right = delete(node.right, m.key)
     # балансируем все вершины на пути обратно к корню
     return fix_balance(node)
 
 
-def contains(node, key):
+def exists(node, x):
     while node is not None:
-        if key == node.key:
+        if x == node.key:
             return True
-        if key < node.key:
+        if x < node.key:
             node = node.left
         else:
             node = node.right
@@ -149,11 +149,11 @@ def main():
     for _ in range(q):
         cmd = input().split()
         if cmd[0] == 'add':
-            root = insert(root, int(cmd[1]))
+            root = add(root, int(cmd[1]))
         elif cmd[0] == 'del':
-            root = remove(root, int(cmd[1]))
+            root = delete(root, int(cmd[1]))
         elif cmd[0] == 'exists':
-            if contains(root, int(cmd[1])):
+            if exists(root, int(cmd[1])):
                 ans.append('YES')
             else:
                 ans.append('NO')
