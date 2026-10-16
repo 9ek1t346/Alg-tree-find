@@ -10,171 +10,185 @@ class Node:
         self.height = 1
 
 
-def get_height(node):
-    if node is None:
-        return 0
-    return node.height
+class AVLTree:
+    def __init__(self):
+        self.root = None
 
+    def _h(self, node):
+        if node is None:
+            return 0
+        return node.height
 
-def update_height(node):
-    node.height = max(get_height(node.left), get_height(node.right)) + 1
+    def _update(self, node):
+        node.height = max(self._h(node.left), self._h(node.right)) + 1
 
+    # bal(v) = h(R) - h(L)
+    def _bal(self, node):
+        return self._h(node.right) - self._h(node.left)
 
-# bal(v) = h(R) - h(L)
-def get_balance(node):
-    return get_height(node.right) - get_height(node.left)
+    def _rotate_left(self, a):
+        b = a.right
+        a.right = b.left
+        b.left = a
+        self._update(a)
+        self._update(b)
+        return b
 
+    def _rotate_right(self, a):
+        b = a.left
+        a.left = b.right
+        b.right = a
+        self._update(a)
+        self._update(b)
+        return b
 
-def rotate_left(a):
-    b = a.right
-    a.right = b.left
-    b.left = a
-    update_height(a)
-    update_height(b)
-    return b
+    # пересчитываем высоту, если |bal| = 2 - делаем малое или большое вращение
+    # возвращаем новый корень поддерева
+    def _balance(self, v):
+        self._update(v)
+        b = self._bal(v)
+        if b == 2:
+            if self._bal(v.right) < 0:
+                v.right = self._rotate_right(v.right)
+            return self._rotate_left(v)
+        if b == -2:
+            if self._bal(v.left) > 0:
+                v.left = self._rotate_left(v.left)
+            return self._rotate_right(v)
+        return v
 
+    def add(self, x):
+        self.root = self._add(self.root, x)
 
-def rotate_right(a):
-    b = a.left
-    a.left = b.right
-    b.right = a
-    update_height(a)
-    update_height(b)
-    return b
-
-
-# пересчитываем высоту, если |bal| = 2 - делаем малое или большое вращение
-# возвращаем новый корень поддерева
-def fix_balance(v):
-    update_height(v)
-    b = get_balance(v)
-    if b == 2:
-        if get_balance(v.right) < 0:
-            v.right = rotate_right(v.right)
-        return rotate_left(v)
-    if b == -2:
-        if get_balance(v.left) > 0:
-            v.left = rotate_left(v.left)
-        return rotate_right(v)
-    return v
-
-
-def add(node, x):
-    if node is None:
-        return Node(x)
-    if x < node.key:
-        node.left = add(node.left, x)
-    elif x > node.key:
-        node.right = add(node.right, x)
-    else:
-        return node
-    return fix_balance(node)
-
-
-def find_min(node):
-    while node.left is not None:
-        node = node.left
-    return node
-
-
-def delete(node, x):
-    if node is None:
-        return None
-    if x < node.key:
-        node.left = delete(node.left, x)
-    elif x > node.key:
-        node.right = delete(node.right, x)
-    else:
-        # лист или один ребенок
-        if node.left is None:
-            return node.right
-        if node.right is None:
-            return node.left
-        # два ребенка: берем минимум из правого поддерева
-        m = find_min(node.right)
-        node.key = m.key
-        node.right = delete(node.right, m.key)
-    # балансируем все вершины на пути обратно к корню
-    return fix_balance(node)
-
-
-def exists(node, x):
-    while node is not None:
-        if x == node.key:
-            return True
+    def _add(self, node, x):
+        if node is None:
+            return Node(x)
         if x < node.key:
-            node = node.left
+            node.left = self._add(node.left, x)
+        elif x > node.key:
+            node.right = self._add(node.right, x)
         else:
-            node = node.right
-    return False
+            return node
+        return self._balance(node)
 
+    def delete(self, x):
+        self.root = self._delete(self.root, x)
 
-# минимальный ключ >= x
-def next_key(node, x):
-    res = None
-    while node is not None:
-        if node.key >= x:
-            res = node.key
+    def _find_min(self, node):
+        while node.left is not None:
             node = node.left
+        return node
+
+    def _delete(self, node, x):
+        if node is None:
+            return None
+        if x < node.key:
+            node.left = self._delete(node.left, x)
+        elif x > node.key:
+            node.right = self._delete(node.right, x)
         else:
-            node = node.right
-    return res
+            # лист или один ребенок
+            if node.left is None:
+                return node.right
+            if node.right is None:
+                return node.left
+            # два ребенка: берем минимум из правого поддерева
+            m = self._find_min(node.right)
+            node.key = m.key
+            node.right = self._delete(node.right, m.key)
+        # балансируем все вершины на пути обратно к корню
+        return self._balance(node)
 
+    def exists(self, x):
+        node = self.root
+        while node is not None:
+            if x == node.key:
+                return True
+            if x < node.key:
+                node = node.left
+            else:
+                node = node.right
+        return False
 
-# максимальный ключ <= x
-def prev_key(node, x):
-    res = None
-    while node is not None:
-        if node.key <= x:
-            res = node.key
-            node = node.right
-        else:
-            node = node.left
-    return res
+    # минимальный ключ >= x
+    def next_key(self, x):
+        res = None
+        node = self.root
+        while node is not None:
+            if node.key >= x:
+                res = node.key
+                node = node.left
+            else:
+                node = node.right
+        return res
 
+    # максимальный ключ <= x
+    def prev_key(self, x):
+        res = None
+        node = self.root
+        while node is not None:
+            if node.key <= x:
+                res = node.key
+                node = node.right
+            else:
+                node = node.left
+        return res
 
-def preorder(node, res):
-    if node is None:
-        return
-    res.append(str(node.key))
-    preorder(node.left, res)
-    preorder(node.right, res)
+    def root_key(self):
+        if self.root is None:
+            return None
+        return self.root.key
+
+    def height(self):
+        return self._h(self.root)
+
+    def preorder(self):
+        keys = []
+        self._preorder(self.root, keys)
+        return keys
+
+    def _preorder(self, node, keys):
+        if node is None:
+            return
+        keys.append(str(node.key))
+        self._preorder(node.left, keys)
+        self._preorder(node.right, keys)
 
 
 def main():
     input = sys.stdin.readline
-    root = None
+    tree = AVLTree()
     ans = []
     q = int(input())
     for _ in range(q):
         cmd = input().split()
         if cmd[0] == 'add':
-            root = add(root, int(cmd[1]))
+            tree.add(int(cmd[1]))
         elif cmd[0] == 'del':
-            root = delete(root, int(cmd[1]))
+            tree.delete(int(cmd[1]))
         elif cmd[0] == 'exists':
-            if exists(root, int(cmd[1])):
+            if tree.exists(int(cmd[1])):
                 ans.append('YES')
             else:
                 ans.append('NO')
         elif cmd[0] == 'next':
-            ans.append(str(next_key(root, int(cmd[1]))))
+            ans.append(str(tree.next_key(int(cmd[1]))))
         elif cmd[0] == 'prev':
-            ans.append(str(prev_key(root, int(cmd[1]))))
+            ans.append(str(tree.prev_key(int(cmd[1]))))
         elif cmd[0] == 'root':
-            if root is None:
+            key = tree.root_key()
+            if key is None:
                 ans.append('Empty')
             else:
-                ans.append(str(root.key))
+                ans.append(str(key))
         elif cmd[0] == 'height':
-            ans.append(str(get_height(root)))
+            ans.append(str(tree.height()))
         elif cmd[0] == 'print':
-            if root is None:
-                ans.append('Empty')
-            else:
-                keys = []
-                preorder(root, keys)
+            keys = tree.preorder()
+            if keys:
                 ans.append(' '.join(keys))
+            else:
+                ans.append('Empty')
     print('\n'.join(ans))
 
 
